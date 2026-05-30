@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Browser Rendering Pipeline</title>
-    <link rel="stylesheet" href="theme.css">    <style>
+    <style>
         @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap');
 
         * {
@@ -741,17 +741,17 @@
 </head>
 <body>
     <div class="layout">
-        <header class="header comic-header">
+        <header class="header">
             <div class="header-left">
                 <div class="hamburger" onclick="toggleSidebar()">
                     <span></span>
                     <span></span>
                     <span></span>
                 </div>
-                <a href="index.html" class="comic-btn comic-btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Back to Home</a>
-                <h1 class="comic-title">Browser Rendering Pipeline</h1>
+                <a href="index.html" class="back-button">Back to Home</a>
+                <h1>Browser Rendering Pipeline</h1>
             </div>
-            <button class="comic-btn comic-btn-secondary" onclick="toggleTheme()">DARK MODE</button>
+            <button class="theme-toggle" onclick="toggleTheme()">DARK MODE</button>
         </header>
 
         <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
@@ -763,7 +763,6 @@
                     <li class="nav-item" onclick="setActive(this); window.location.href='React_Documentation.html'">Overview</li>
                     <li class="nav-item active" onclick="setActive(this)">Rendering Pipeline</li>
                     <li class="nav-item" onclick="setActive(this); window.location.href='Vanilla_JS_Problem.html'">Vanilla JS Problem</li>
-                    <li class="nav-item" onclick="setActive(this); window.location.href='React_Internals.html'">React Internals</li>
                 </ul>
             </aside>
 
