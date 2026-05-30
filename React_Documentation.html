@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>React JS Documentation</title>
+    <link rel="stylesheet" href="theme.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap');
 
@@ -667,17 +668,17 @@
 </head>
 <body>
     <div class="layout">
-        <header class="header">
+        <header class="header comic-header">
             <div class="header-left">
                 <div class="hamburger" onclick="toggleSidebar()">
                     <span></span>
                     <span></span>
                     <span></span>
                 </div>
-                <a href="index.html" class="back-button">Back to Home</a>
-                <h1>React JS Documentation</h1>
+                <a href="index.html" class="comic-btn comic-btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Back to Home</a>
+                <h1 class="comic-title">React JS Documentation</h1>
             </div>
-            <button class="theme-toggle" onclick="toggleTheme()">DARK MODE</button>
+            <button class="comic-btn comic-btn-secondary" onclick="toggleTheme()">DARK MODE</button>
         </header>
 
         <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
@@ -689,6 +690,7 @@
                     <li class="nav-item active" onclick="setActive(this)">Overview</li>
                     <li class="nav-item" onclick="setActive(this); window.location.href='Browser_Rendering_Pipeline.html'">Rendering Pipeline</li>
                     <li class="nav-item" onclick="setActive(this); window.location.href='Vanilla_JS_Problem.html'">Vanilla JS Problem</li>
+                    <li class="nav-item" onclick="setActive(this); window.location.href='React_Internals.html'">React Internals</li>
                 </ul>
             </aside>
 
@@ -706,22 +708,22 @@
 
                 <h3 id="key-features" style="margin-top: 25px; margin-bottom: 12px; font-family: 'Bangers', cursive; font-size: 1.3rem; text-transform: uppercase;">Key Features</h3>
                 
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <h3 id="virtual-dom">Virtual DOM</h3>
-                        <p>React uses a virtual DOM to optimize rendering performance. It minimizes direct DOM manipulation for faster updates.</p>
+                <div class="comic-grid">
+                    <div class="comic-card">
+                        <div class="comic-card-title" id="virtual-dom">Virtual DOM</div>
+                        <div class="comic-card-content">React uses a virtual DOM to optimize rendering performance. It minimizes direct DOM manipulation for faster updates.</div>
                     </div>
-                    <div class="feature-card">
-                        <h3 id="component-based">Component-Based</h3>
-                        <p>Build encapsulated components that manage their own state, then compose them to make complex UIs.</p>
+                    <div class="comic-card">
+                        <div class="comic-card-title" id="component-based">Component-Based</div>
+                        <div class="comic-card-content">Build encapsulated components that manage their own state, then compose them to make complex UIs.</div>
                     </div>
-                    <div class="feature-card">
-                        <h3 id="jsx-syntax">JSX Syntax</h3>
-                        <p>JSX makes writing React components intuitive by combining HTML-like syntax with JavaScript functionality.</p>
+                    <div class="comic-card">
+                        <div class="comic-card-title" id="jsx-syntax">JSX Syntax</div>
+                        <div class="comic-card-content">JSX makes writing React components intuitive by combining HTML-like syntax with JavaScript functionality.</div>
                     </div>
-                    <div class="feature-card">
-                        <h3 id="data-flow">Unidirectional Data Flow</h3>
-                        <p>Data flows down from parent to child components, making the application easier to understand and debug.</p>
+                    <div class="comic-card">
+                        <div class="comic-card-title" id="data-flow">Unidirectional Data Flow</div>
+                        <div class="comic-card-content">Data flows down from parent to child components, making the application easier to understand and debug.</div>
                     </div>
                 </div>
 
@@ -741,8 +743,8 @@
                     <span class="keyword">export default</span> Welcome;
                 </div>
 
-                <div class="info-box" id="getting-started">
-                    Ready to start learning? Begin with the Installation guide to set up your first React project!
+                <div class="comic-info-box comic-box p-2 mt-2" id="getting-started">
+                    <strong>⚡ Getting Started:</strong> Ready to start learning? Begin with the Installation guide to set up your first React project!
                 </div>
             </main>
 
