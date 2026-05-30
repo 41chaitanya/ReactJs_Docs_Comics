@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Real Problem With Vanilla JS</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Comic Neue', cursive;
+            background-color: #FFFFFF;
+            color: #000000;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        body.dark {
+            background-color: #1A1A1A;
+            color: #E0E0E0;
+        }
+
+        .layout {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 6px solid #000;
+            background-color: #FFFDE7;
+            position: relative;
+            z-index: 100;
+            transition: background-color 0.4s ease, border-color 0.4s ease;
+        }
+
+        body.dark .header {
+            background-color: #2A2A2A;
+            border-color: #444;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: repeating-linear-gradient(
+                90deg,
+                #000 0px,
+                #000 10px,
+                transparent 10px,
+                transparent 15px
+            );
+        }
+
+        body.dark .header::after {
+            background: repeating-linear-gradient(
+                90deg,
+                #444 0px,
+                #444 10px,
+                transparent 10px,
+                transparent 15px
+            );
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 5px;
+            z-index: 200;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background-color: #000;
+            margin: 3px 0;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        body.dark .hamburger span {
+            background-color: #FFF;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
+
+        .back-button {
+            padding: 6px 12px;
+            border: 3px solid #000;
+            cursor: pointer;
+            font-family: 'Bangers', cursive;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background-color: #FFF;
+            color: #000;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        body.dark .back-button {
+            background-color: #444;
+            color: #FFF;
+            border-color: #666;
+        }
+
+        .back-button:hover {
+            transform: rotate(-2deg) scale(1.05);
+        }
+
+        .header h1 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            padding: 8px 16px;
+            border: 3px solid #000;
+            cursor: pointer;
+            font-family: 'Bangers', cursive;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background-color: #FFF;
+            color: #000;
+            transition: all 0.3s ease;
+        }
+
+        body.dark .theme-toggle {
+            background-color: #444;
+            color: #FFF;
+            border-color: #666;
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(-2deg) scale(1.05);
+        }
+
+        /* Left Sidebar */
+        .sidebar-left {
+            width: 200px;
+            min-width: 200px;
+            padding: 15px 10px;
+            border-right: 6px solid #000;
+            background-color: #FFF9C4;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: all 0.4s ease;
+            scroll-behavior: auto;
+        }
+
+        body.dark .sidebar-left {
+            background-color: #252525;
+            border-color: #444;
+        }
+
+        .sidebar-left h2 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #000;
+            text-transform: uppercase;
+        }
+
+        body.dark .sidebar-left h2 {
+            border-color: #555;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-item {
+            padding: 10px 12px;
+            margin: 6px 0;
+            border: 3px solid #000;
+            cursor: pointer;
+            font-family: 'Bangers', cursive;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background-color: #FFF;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            order: 0;
+        }
+
+        body.dark .nav-item {
+            background-color: #333;
+            border-color: #555;
+            color: #E0E0E0;
+        }
+
+        .nav-item.active {
+            background-color: #000;
+            color: #FFF;
+            order: 0;
+        }
+
+        .nav-item:hover {
+            background-color: #333;
+            color: #FFF;
+        }
+
+        /* Main Content */
+        .content {
+            flex: 1;
+            padding: 20px;
+            background-color: #FFFFFF;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: background-color 0.4s ease;
+        }
+
+        body.dark .content {
+            background-color: #1E1E1E;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: inherit;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: #000;
+            border-radius: 4px;
+        }
+
+        body.dark .content::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+
+        .content h2 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.6rem;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 4px solid #000;
+            text-transform: uppercase;
+        }
+
+        body.dark .content h2 {
+            border-color: #555;
+        }
+
+        .content h3 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .content p {
+            line-height: 1.7;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .content ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .content li {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+
+        .content strong {
+            font-weight: 700;
+        }
+
+        .content code {
+            background-color: #333;
+            color: #FFF;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        body.dark .content code {
+            background-color: #555;
+        }
+
+        /* Pipeline Step Card */
+        .pipeline-step {
+            padding: 15px;
+            border: 4px solid #000;
+            position: relative;
+            background-color: #FFF;
+            margin: 15px 0;
+        }
+
+        body.dark .pipeline-step {
+            background-color: #2A2A2A;
+            border-color: #555;
+        }
+
+        .pipeline-step::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            right: -6px;
+            bottom: -6px;
+            border: 3px solid #000;
+            z-index: -1;
+        }
+
+        body.dark .pipeline-step::before {
+            border-color: #444;
+        }
+
+        .pipeline-step h4 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .pipeline-step p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Code Block */
+        .code-block {
+            background-color: #1A1A1A;
+            color: #FFF;
+            padding: 15px;
+            border: 3px solid #000;
+            margin: 12px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            position: relative;
+            white-space: pre-wrap;
+        }
+
+        body.dark .code-block {
+            border-color: #555;
+        }
+
+        .code-block::before {
+            content: 'CODE';
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background-color: #000;
+            color: #FFF;
+            padding: 2px 8px;
+            font-family: 'Bangers', cursive;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        .code-block .comment {
+            color: #888;
+        }
+
+        .code-block .keyword {
+            color: #DDD;
+        }
+
+        .code-block .string {
+            color: #AAA;
+        }
+
+        /* Info Box */
+        .info-box {
+            padding: 12px 15px;
+            border: 3px solid #000;
+            margin: 15px 0;
+            position: relative;
+            background-color: #F5F5F5;
+        }
+
+        body.dark .info-box {
+            background-color: #2A2A2A;
+            border-color: #555;
+        }
+
+        .info-box::before {
+            content: '!';
+            position: absolute;
+            top: -12px;
+            left: -12px;
+            width: 28px;
+            height: 28px;
+            background-color: #000;
+            color: #FFF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Bangers', cursive;
+            font-size: 1rem;
+        }
+
+        /* Diagram Box */
+        .diagram-box {
+            padding: 15px;
+            border: 4px solid #000;
+            margin: 15px 0;
+            background-color: #F5F5F5;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+
+        body.dark .diagram-box {
+            background-color: #222;
+            border-color: #555;
+        }
+
+        /* Right Sidebar */
+        .sidebar-right {
+            width: 160px;
+            min-width: 160px;
+            padding: 15px 10px;
+            border-left: 6px solid #000;
+            background-color: #F5F5F5;
+            overflow: hidden;
+        }
+
+        body.dark .sidebar-right {
+            background-color: #252525;
+            border-color: #444;
+        }
+
+        .sidebar-right h3 {
+            font-family: 'Bangers', cursive;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #000;
+            text-transform: uppercase;
+        }
+
+        body.dark .sidebar-right h3 {
+            border-color: #555;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-item {
+            padding: 6px 8px;
+            margin: 4px 0;
+            font-size: 0.7rem;
+            cursor: pointer;
+            border: 2px solid #000;
+            font-family: 'Comic Neue', cursive;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            background-color: #FFF;
+        }
+
+        body.dark .toc-item {
+            background-color: #333;
+            border-color: #555;
+            color: #E0E0E0;
+        }
+
+        .toc-item:hover {
+            background-color: #000;
+            color: #FFF;
+            transform: translateX(3px);
+        }
+
+        .toc-item.sub {
+            padding-left: 12px;
+            font-size: 0.65rem;
+            border-style: dashed;
+        }
+
+        /* Action lines effect */
+        .action-lines {
+            position: relative;
+        }
+
+        .action-lines::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(0,0,0,0.03) 10px,
+                rgba(0,0,0,0.03) 20px
+            );
+            pointer-events: none;
+        }
+
+        body.dark .action-lines::before {
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255,255,255,0.02) 10px,
+                rgba(255,255,255,0.02) 20px
+            );
+        }
+
+        /* Mobile Overlay */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 150;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .back-button {
+                display: none;
+            }
+
+            .sidebar-left {
+                position: fixed;
+                top: 0;
+                left: -250px;
+                width: 250px;
+                height: 100vh;
+                z-index: 160;
+                padding-top: 70px;
+                transition: left 0.3s ease;
+            }
+
+            .sidebar-left.active {
+                left: 0;
+            }
+
+            .sidebar-right {
+                display: none;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .content h2 {
+                font-size: 1.3rem;
+            }
+
+            .header h1 {
+                font-size: 1rem;
+            }
+        }
+
+        /* Tablet */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .sidebar-left {
+                width: 180px;
+                min-width: 180px;
+            }
+
+            .sidebar-right {
+                width: 150px;
+                min-width: 150px;
+            }
+        }
+
+        /* Desktop */
+        @media (min-width: 1025px) and (max-width: 1440px) {
+            .content h2 {
+                font-size: 1.8rem;
+            }
+        }
+
+        /* Large Desktop */
+        @media (min-width: 1441px) {
+            .sidebar-left {
+                width: 240px;
+                min-width: 240px;
+            }
+
+            .sidebar-right {
+                width: 220px;
+                min-width: 220px;
+            }
+
+            .content {
+                max-width: 1000px;
+            }
+
+            .content h2 {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <header class="header">
+            <div class="header-left">
+                <div class="hamburger" onclick="toggleSidebar()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <a href="index.html" class="back-button">Back to Home</a>
+                <h1>The Real Problem With Vanilla JS</h1>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">DARK MODE</button>
+        </header>
+
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <div class="main-wrapper">
+            <aside class="sidebar-left">
+                <h2>Navigation</h2>
+                <ul class="nav-list">
+                    <li class="nav-item" onclick="setActive(this); window.location.href='React_Documentation.html'">Overview</li>
+                    <li class="nav-item" onclick="setActive(this); window.location.href='Browser_Rendering_Pipeline.html'">Rendering Pipeline</li>
+                    <li class="nav-item active" onclick="setActive(this)">Vanilla JS Problem</li>
+                </ul>
+            </aside>
+
+            <main class="content action-lines">
+                <h2 id="overview">The Real Problem With Vanilla JavaScript</h2>
+                
+                <p>
+                    Many beginners think React was created because JavaScript could not update the DOM efficiently.
+                </p>
+
+                <p>
+                    <strong>This is incorrect.</strong>
+                </p>
+
+                <p>
+                    Vanilla JavaScript can update the DOM perfectly fine.
+                </p>
+
+                <p>
+                    The real problem is not DOM manipulation. The real problem is maintaining consistency between:
+                </p>
+
+                <ul>
+                    <li>Application State</li>
+                    <li>UI</li>
+                    <li>DOM</li>
+                </ul>
+
+                <p>as an application grows.</p>
+
+                <!-- Live Preview Button -->
+                <div style="margin: 20px 0; text-align: center;">
+                    <a href="Demo_VanillaJS_problem.html" style="
+                        display: inline-block;
+                        padding: 12px 24px;
+                        font-family: 'Bangers', cursive;
+                        font-size: 1rem;
+                        letter-spacing: 2px;
+                        text-transform: uppercase;
+                        border: 4px solid #000;
+                        background-color: #000;
+                        color: #FFF;
+                        text-decoration: none;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    ">What Developers Must Manage</a>
+                </div>
+
+                <!-- What Developers Must Manage -->
+                <h3 id="manage">What Developers Must Manage</h3>
+
+                <div class="pipeline-step">
+                    <h4>Manual Work in Vanilla JavaScript</h4>
+                    <p>
+                        In Vanilla JavaScript, whenever data changes, the developer must manually:
+                    </p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Update the state</li>
+                        <li>Find affected DOM elements</li>
+                        <li>Update those DOM elements</li>
+                        <li>Ensure all related UI stays synchronized</li>
+                    </ul>
+                </div>
+
+                <div class="diagram-box">Application State
+    ↓
+Developer
+    ↓
+DOM Updates
+    ↓
+UI Changes
+
+The browser only renders what exists in the DOM.
+The browser does not know your state or which UI depends on it.</div>
+
+                <!-- Counter Example -->
+                <h3 id="counter">Example: Counter Application</h3>
+
+                <div class="code-block"><span class="comment">// State</span>
+let count = 0;
+
+<span class="comment">// UI</span>
+&lt;h1 id="count"&gt;0&lt;/h1&gt;
+&lt;button id="increment"&gt;+&lt;/button&gt;
+
+<span class="comment">// Update Logic</span>
+const countElement =
+  document.getElementById("count");
+
+document
+  .getElementById("increment")
+  .addEventListener("click", () => {
+    count++;
+    countElement.textContent = count;
+  });</div>
+
+                <div class="info-box">
+                    <strong>Note:</strong> Everything works correctly. But notice - whenever state changes, 
+                    the developer must remember to update the DOM manually.
+                </div>
+
+                <!-- Synchronization Problem -->
+                <h3 id="sync">The Synchronization Problem</h3>
+
+                <div class="pipeline-step">
+                    <h4>Multiple UI Elements Showing Same Value</h4>
+                    <p>
+                        Imagine the UI contains multiple places showing the same value.
+                    </p>
+                </div>
+
+                <div class="code-block">&lt;h1 id="count"&gt;0&lt;/h1&gt;
+&lt;span id="navbar-count"&gt;0&lt;/span&gt;
+&lt;p id="footer-count"&gt;0&lt;/p&gt;
+
+<span class="comment">// One state change requires multiple DOM updates</span>
+count++;
+countElement.textContent = count;
+navbarCount.textContent = count;
+footerCount.textContent = count;</div>
+
+                <div class="diagram-box">State Change
+    ↓
+Update Element A
+    ↓
+Update Element B
+    ↓
+Update Element C
+    ↓
+Update Element D
+
+As the application grows, this becomes harder to manage.</div>
+
+                <!-- Developer Dependency -->
+                <h3 id="dependency">Developer Dependency Problem</h3>
+
+                <div class="pipeline-step">
+                    <h4>Human Error Happens</h4>
+                    <p>
+                        The application depends heavily on the developer remembering every required update.
+                    </p>
+                </div>
+
+                <div class="code-block">count++;
+countElement.textContent = count;
+navbarCount.textContent = count;
+<span class="comment">// Forgot footerCount!</span>
+
+<span class="comment">// Result:</span>
+State = 5
+Header = 5
+Navbar = 5
+Footer = 4 ❌ <span class="comment">// Out of sync!</span></div>
+
+                <div class="diagram-box">State = 5
+
+├── Header = 5
+├── Navbar = 5
+└── Footer = 4 ❌
+
+UI is now out of sync.
+The bug happened because the developer forgot one update.</div>
+
+                <!-- As Applications Grow -->
+                <h3 id="growth">As Applications Grow</h3>
+
+                <div class="pipeline-step">
+                    <h4>Modern Applications Are Complex</h4>
+                    <p>Modern applications contain:</p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Hundreds of UI elements</li>
+                        <li>Multiple screens</li>
+                        <li>Forms</li>
+                        <li>API data</li>
+                        <li>Real-time updates</li>
+                        <li>Complex interactions</li>
+                    </ul>
+                    <p>
+                        One state change may affect many UI sections. Developers must manually track 
+                        what changed and which DOM nodes depend on it.
+                    </p>
+                </div>
+
+                <!-- Scattered Rendering -->
+                <h3 id="scattered">Rendering Responsibility is Scattered</h3>
+
+                <div class="pipeline-step">
+                    <h4>No Centralized System</h4>
+                    <p>
+                        Another major problem is that rendering logic is spread throughout the codebase.
+                    </p>
+                </div>
+
+                <div class="code-block">button.addEventListener(...)
+input.addEventListener(...)
+socket.onmessage(...)
+fetch(...)
+setTimeout(...)
+
+<span class="comment">// Every event source may update the DOM independently</span></div>
+
+                <div class="diagram-box">Button Event ──────┐
+Input Event ───────┤
+API Response ──────┤
+WebSocket ─────────┤
+Timer Event ───────┘
+         ↓
+  Multiple DOM Updates
+
+Rendering responsibility is scattered across many files.
+There is no centralized rendering system.</div>
+
+                <!-- Self-Managed Rendering -->
+                <h3 id="selfmanaged">Self-Managed Rendering</h3>
+
+                <div class="pipeline-step">
+                    <h4>Each Feature Manages Its Own Rendering</h4>
+                    <p>
+                        In Vanilla JavaScript, each feature usually manages its own rendering logic.
+                    </p>
+                </div>
+
+                <div class="diagram-box">Cart Module → Updates Cart UI
+User Module → Updates User UI
+Notification Module → Updates Notification UI
+Dashboard Module → Updates Dashboard UI
+
+Every module decides:
+- When to render
+- What to render
+- How to render
+
+Rendering becomes distributed throughout the application.</div>
+
+                <!-- React's Solution -->
+                <h3 id="solution">React's Solution</h3>
+
+                <div class="pipeline-step">
+                    <h4>Centralized Rendering</h4>
+                    <p>
+                        React introduces a different approach. The developer updates only the state. 
+                        React determines what changed, which UI depends on it, and which DOM nodes need updating.
+                    </p>
+                </div>
+
+                <div class="code-block"><span class="comment">// React - Just update state</span>
+setCount(count + 1);
+
+<span class="comment">// React handles the rest automatically</span></div>
+
+                <div class="diagram-box">State Change
+    ↓
+React
+    ↓
+Virtual DOM Comparison
+    ↓
+Minimal DOM Updates
+    ↓
+UI Updated
+
+The developer no longer manually synchronizes DOM and state.
+React becomes the central rendering system.</div>
+
+                <!-- Comparison -->
+                <h3 id="comparison">Vanilla JS vs React</h3>
+
+                <div class="diagram-box">VANILLA JS:
+State Change → Developer → Manual DOM Updates → UI
+
+REACT:
+State Change → React → Automatic Re-render → DOM Updates → UI
+
+The responsibility moves from the developer to the framework.</div>
+
+                <!-- Key Takeaway -->
+                <h3 id="takeaway">Key Takeaway</h3>
+
+                <div class="pipeline-step" style="border-color: #333;">
+                    <h4>The Real Problems</h4>
+                    <p>
+                        The biggest problem with Vanilla JavaScript is not DOM manipulation.
+                    </p>
+                    <p>The real problems are:</p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>State, UI, and DOM must be manually synchronized</li>
+                        <li>Developer dependency is very high</li>
+                        <li>Rendering responsibility is scattered throughout the application</li>
+                        <li>Multiple event sources can trigger independent DOM updates</li>
+                        <li>Maintaining consistency becomes difficult as applications grow</li>
+                    </ul>
+                    <p>
+                        <strong>React solves these problems by centralizing rendering around state changes 
+                        and automatically keeping the UI synchronized with the application's state.</strong>
+                    </p>
+                </div>
+
+            </main>
+
+            <aside class="sidebar-right">
+                <h3>On This Page</h3>
+                <ul class="toc-list">
+                    <li class="toc-item" onclick="scrollToSection('overview')">Overview</li>
+                    <li class="toc-item" onclick="scrollToSection('manage')">Manual Work</li>
+                    <li class="toc-item" onclick="scrollToSection('counter')">Counter Example</li>
+                    <li class="toc-item" onclick="scrollToSection('sync')">Sync Problem</li>
+                    <li class="toc-item" onclick="scrollToSection('dependency')">Dev Dependency</li>
+                    <li class="toc-item" onclick="scrollToSection('growth')">App Growth</li>
+                    <li class="toc-item" onclick="scrollToSection('scattered')">Scattered Logic</li>
+                    <li class="toc-item" onclick="scrollToSection('selfmanaged')">Self-Managed</li>
+                    <li class="toc-item" onclick="scrollToSection('solution')">React Solution</li>
+                    <li class="toc-item" onclick="scrollToSection('comparison')">Comparison</li>
+                    <li class="toc-item" onclick="scrollToSection('takeaway')">Takeaway</li>
+                </ul>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const btn = document.querySelector('.theme-toggle');
+            if (document.body.classList.contains('dark')) {
+                btn.textContent = 'LIGHT MODE';
+            } else {
+                btn.textContent = 'DARK MODE';
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar-left');
+            const hamburger = document.querySelector('.hamburger');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            sidebar.classList.toggle('active');
+            hamburger.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        function setActive(element) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+        }
+
+        window.addEventListener('load', function() {
+            const sidebar = document.querySelector('.sidebar-left');
+            if (sidebar) {
+                sidebar.scrollTop = 0;
+            }
+        });
+
+        function scrollToSection(id) {
+            const element = document.getElementById(id);
+            const contentArea = document.querySelector('.content');
+            if (element && contentArea) {
+                const elementPosition = element.offsetTop;
+                contentArea.scrollTo({
+                    top: elementPosition,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    </script>
+</body>
+</html>
