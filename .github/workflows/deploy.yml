@@ -22,7 +22,7 @@ jobs:
       - name: Prepare publish directory
         run: |
           mkdir -p public
-          cp index.html React_Documentation.html .nojekyll public/
+          cp *.html .nojekyll public/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
