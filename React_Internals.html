@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Internals: JSX to Virtual DOM</title>
+    <link rel="stylesheet" href="theme.css">    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Comic Neue', cursive;
+            background-color: #FFFFFF;
+            color: #000000;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        body.dark {
+            background-color: #1A1A1A;
+            color: #E0E0E0;
+        }
+
+        .layout {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 6px solid #000;
+            background-color: #FFFDE7;
+            position: relative;
+            z-index: 100;
+            transition: background-color 0.4s ease, border-color 0.4s ease;
+        }
+
+        body.dark .header {
+            background-color: #2A2A2A;
+            border-color: #444;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: repeating-linear-gradient(90deg, #000 0px, #000 10px, transparent 10px, transparent 15px);
+        }
+
+        body.dark .header::after {
+            background: repeating-linear-gradient(90deg, #444 0px, #444 10px, transparent 10px, transparent 15px);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 5px;
+            z-index: 200;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background-color: #000;
+            margin: 3px 0;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        body.dark .hamburger span {
+            background-color: #FFF;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
+
+        .back-button {
+            padding: 6px 12px;
+            border: 3px solid #000;
+            cursor: pointer;
+            font-family: 'Bangers', cursive;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background-color: #FFF;
+            color: #000;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        body.dark .back-button {
+            background-color: #444;
+            color: #FFF;
+            border-color: #666;
+        }
+
+        .back-button:hover {
+            transform: rotate(-2deg) scale(1.05);
+        }
+
+        .header h1 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .theme-toggle {
+            padding: 8px 16px;
+            border: 3px solid #000;
+            cursor: pointer;
+            font-family: 'Bangers', cursive;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background-color: #FFF;
+            color: #000;
+            transition: all 0.3s ease;
+        }
+
+        body.dark .theme-toggle {
+            background-color: #444;
+            color: #FFF;
+            border-color: #666;
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(-2deg) scale(1.05);
+        }
+
+        /* Left Sidebar */
+        .sidebar-left {
+            width: 200px;
+            min-width: 200px;
+            padding: 15px 10px;
+            border-right: 6px solid #000;
+            background-color: #FFF9C4;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: all 0.4s ease;
+        }
+
+        body.dark .sidebar-left {
+            background-color: #252525;
+            border-color: #444;
+        }
+
+        .sidebar-left h2 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #000;
+            text-transform: uppercase;
+        }
+
+        body.dark .sidebar-left h2 {
+            border-color: #555;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-item {
+            padding: 10px 12px;
+            margin: 6px 0;
+            border: 3px solid #000;
+            cursor: pointer;
+            font-family: 'Bangers', cursive;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background-color: #FFF;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.dark .nav-item {
+            background-color: #333;
+            border-color: #555;
+            color: #E0E0E0;
+        }
+
+        .nav-item.active {
+            background-color: #000;
+            color: #FFF;
+        }
+
+        .nav-item:hover {
+            background-color: #333;
+            color: #FFF;
+        }
+
+        /* Main Content */
+        .content {
+            flex: 1;
+            padding: 20px;
+            background-color: #FFFFFF;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: background-color 0.4s ease;
+        }
+
+        body.dark .content {
+            background-color: #1E1E1E;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: inherit;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: #000;
+            border-radius: 4px;
+        }
+
+        body.dark .content::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+
+        .content h2 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 4px solid #000;
+            text-transform: uppercase;
+        }
+
+        body.dark .content h2 {
+            border-color: #555;
+        }
+
+        .content h3 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .content p {
+            line-height: 1.7;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .content ul, .content ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .content li {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+
+        .content strong {
+            font-weight: 700;
+        }
+
+        .content code {
+            background-color: #333;
+            color: #FFF;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        body.dark .content code {
+            background-color: #555;
+        }
+
+        /* Cards */
+        .card {
+            padding: 15px;
+            border: 4px solid #000;
+            position: relative;
+            background-color: #FFF;
+            margin: 15px 0;
+        }
+
+        body.dark .card {
+            background-color: #2A2A2A;
+            border-color: #555;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            right: -6px;
+            bottom: -6px;
+            border: 3px solid #000;
+            z-index: -1;
+        }
+
+        body.dark .card::before {
+            border-color: #444;
+        }
+
+        .card h4 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        /* Warning Card */
+        .warning-card {
+            padding: 15px;
+            border: 4px solid #000;
+            background-color: #FFFDE7;
+            margin: 15px 0;
+        }
+
+        body.dark .warning-card {
+            background-color: #333;
+            border-color: #666;
+        }
+
+        .warning-card h4 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .check-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .check-list li {
+            padding: 5px 0;
+            font-size: 0.9rem;
+        }
+
+        .check-yes {
+            color: #000;
+            font-weight: bold;
+        }
+
+        body.dark .check-yes {
+            color: #888;
+        }
+
+        .check-no {
+            color: #000;
+            font-weight: bold;
+            text-decoration: line-through;
+        }
+
+        body.dark .check-no {
+            color: #666;
+        }
+
+        /* Code Block */
+        .code-block {
+            background-color: #1A1A1A;
+            color: #FFF;
+            padding: 15px;
+            border: 3px solid #000;
+            margin: 12px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            position: relative;
+            white-space: pre-wrap;
+        }
+
+        body.dark .code-block {
+            border-color: #555;
+        }
+
+        .code-block::before {
+            content: 'CODE';
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background-color: #000;
+            color: #FFF;
+            padding: 2px 8px;
+            font-family: 'Bangers', cursive;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        .code-block .comment {
+            color: #888;
+        }
+
+        .code-block .keyword {
+            color: #DDD;
+        }
+
+        .code-block .string {
+            color: #AAA;
+        }
+
+        /* Diagram Box */
+        .diagram-box {
+            padding: 15px;
+            border: 4px solid #000;
+            margin: 15px 0;
+            background-color: #F5F5F5;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            white-space: pre-line;
+            text-align: center;
+        }
+
+        body.dark .diagram-box {
+            background-color: #222;
+            border-color: #555;
+        }
+
+        /* Flow Diagram */
+        .flow-diagram {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 15px;
+            border: 4px solid #000;
+            background-color: #F5F5F5;
+        }
+
+        body.dark .flow-diagram {
+            background-color: #222;
+            border-color: #555;
+        }
+
+        .flow-box {
+            padding: 8px 12px;
+            border: 3px solid #000;
+            font-family: 'Bangers', cursive;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            background-color: #FFF;
+            text-align: center;
+        }
+
+        body.dark .flow-box {
+            background-color: #333;
+            border-color: #555;
+        }
+
+        .flow-box.highlight {
+            background-color: #000;
+            color: #FFF;
+        }
+
+        body.dark .flow-box.highlight {
+            background-color: #666;
+            border-color: #888;
+        }
+
+        .flow-arrow {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Tree Diagram */
+        .tree-diagram {
+            padding: 20px;
+            border: 4px solid #000;
+            margin: 15px 0;
+            background-color: #FFF;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+        }
+
+        body.dark .tree-diagram {
+            background-color: #2A2A2A;
+            border-color: #555;
+        }
+
+        /* Object Visualization */
+        .object-viz {
+            padding: 15px;
+            border: 4px solid #000;
+            margin: 15px 0;
+            background-color: #1A1A1A;
+            color: #FFF;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .object-viz .key {
+            color: #DDD;
+        }
+
+        .object-viz .value {
+            color: #AAA;
+        }
+
+        /* Comparison Cards */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .comparison-card {
+            padding: 15px;
+            border: 4px solid #000;
+            text-align: center;
+        }
+
+        .comparison-card h4 {
+            font-family: 'Bangers', cursive;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #000;
+        }
+
+        /* Argument Card */
+        .arg-card {
+            padding: 10px 15px;
+            border: 3px solid #000;
+            margin: 8px 0;
+            background-color: #FFF;
+        }
+
+        body.dark .arg-card {
+            background-color: #333;
+            border-color: #555;
+        }
+
+        .arg-card .arg-num {
+            font-family: 'Bangers', cursive;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        /* Info Box */
+        .info-box {
+            padding: 12px 15px;
+            border: 3px solid #000;
+            margin: 15px 0;
+            position: relative;
+            background-color: #F5F5F5;
+        }
+
+        body.dark .info-box {
+            background-color: #2A2A2A;
+            border-color: #555;
+        }
+
+        .info-box::before {
+            content: '!';
+            position: absolute;
+            top: -12px;
+            left: -12px;
+            width: 28px;
+            height: 28px;
+            background-color: #000;
+            color: #FFF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Bangers', cursive;
+            font-size: 1rem;
+        }
+
+        /* Split Screen */
+        .split-screen {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .split-card {
+            padding: 15px;
+            border: 4px solid #000;
+        }
+
+        .split-card h4 {
+            font-family: 'Bangers', cursive;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #000;
+        }
+
+        /* Right Sidebar */
+        .sidebar-right {
+            width: 160px;
+            min-width: 160px;
+            padding: 15px 10px;
+            border-left: 6px solid #000;
+            background-color: #F5F5F5;
+            overflow: hidden;
+        }
+
+        body.dark .sidebar-right {
+            background-color: #252525;
+            border-color: #444;
+        }
+
+        .sidebar-right h3 {
+            font-family: 'Bangers', cursive;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #000;
+            text-transform: uppercase;
+        }
+
+        body.dark .sidebar-right h3 {
+            border-color: #555;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-item {
+            padding: 5px 8px;
+            margin: 3px 0;
+            font-size: 0.65rem;
+            cursor: pointer;
+            border: 2px solid #000;
+            font-family: 'Comic Neue', cursive;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            background-color: #FFF;
+        }
+
+        body.dark .toc-item {
+            background-color: #333;
+            border-color: #555;
+            color: #E0E0E0;
+        }
+
+        .toc-item:hover {
+            background-color: #000;
+            color: #FFF;
+        }
+
+        /* Action lines effect */
+        .action-lines {
+            position: relative;
+        }
+
+        .action-lines::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 20px);
+            pointer-events: none;
+        }
+
+        body.dark .action-lines::before {
+            background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px);
+        }
+
+        /* Mobile Overlay */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 150;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .hamburger { display: flex; }
+            .back-button { display: none; }
+            .sidebar-left {
+                position: fixed;
+                top: 0;
+                left: -250px;
+                width: 250px;
+                height: 100vh;
+                z-index: 160;
+                padding-top: 70px;
+                transition: left 0.3s ease;
+            }
+            .sidebar-left.active { left: 0; }
+            .sidebar-right { display: none; }
+            .content { padding: 15px; }
+            .content h2 { font-size: 1.3rem; }
+            .header h1 { font-size: 1rem; }
+            .comparison, .split-screen { grid-template-columns: 1fr; }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .sidebar-left { width: 180px; min-width: 180px; }
+            .sidebar-right { width: 150px; min-width: 150px; }
+        }
+
+        @media (min-width: 1441px) {
+            .sidebar-left { width: 240px; min-width: 240px; }
+            .sidebar-right { width: 220px; min-width: 220px; }
+            .content { max-width: 1000px; }
+            .content h2 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <header class="header comic-header">
+            <div class="header-left">
+                <div class="hamburger" onclick="toggleSidebar()">
+                    <span></span><span></span><span></span>
+                </div>
+                <a href="index.html" class="comic-btn comic-btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Back to Home</a>
+                <h1 class="comic-title">React Internals</h1>
+            </div>
+            <button class="comic-btn comic-btn-secondary" onclick="toggleTheme()">DARK MODE</button>
+        </header>
+
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <div class="main-wrapper">
+            <aside class="sidebar-left">
+                <h2>Navigation</h2>
+                <ul class="nav-list">
+                    <li class="nav-item" onclick="setActive(this); window.location.href='React_Documentation.html'">Overview</li>
+                    <li class="nav-item" onclick="setActive(this); window.location.href='Browser_Rendering_Pipeline.html'">Rendering Pipeline</li>
+                    <li class="nav-item" onclick="setActive(this); window.location.href='Vanilla_JS_Problem.html'">Vanilla JS Problem</li>
+                    <li class="nav-item active" onclick="setActive(this)">React Internals</li>
+                </ul>
+            </aside>
+
+            <main class="content action-lines">
+                <!-- React Is An Abstraction -->
+                <h2 id="abstraction">React Is An Abstraction Over Vanilla JavaScript</h2>
+                
+                <p>Before React, developers manually managed State, UI, and DOM and had to keep them synchronized.</p>
+
+                <div class="diagram-box">State
+    ↓
+Developer
+    ↓
+Manual DOM Updates
+    ↓
+UI</div>
+
+                <p>React was created to take this responsibility away from developers.</p>
+
+                <div class="card">
+                    <h4>React Manages</h4>
+                    <ul style="padding-left: 20px;">
+                        <li>UI synchronization</li>
+                        <li>State synchronization</li>
+                        <li>DOM updates</li>
+                        <li>Re-rendering</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <strong>Important:</strong> React is NOT replacing JavaScript. React is built ON TOP OF JavaScript. React is an abstraction layer over Vanilla JavaScript.
+                </div>
+
+                <!-- Browser Does Not Understand React -->
+                <h3 id="browser">Browser Does Not Understand React</h3>
+
+                <div class="warning-card">
+                    <h4>Browser Understands</h4>
+                    <ul class="check-list">
+                        <li class="check-yes">HTML</li>
+                        <li class="check-yes">CSS</li>
+                        <li class="check-yes">JavaScript</li>
+                    </ul>
+                </div>
+
+                <div class="warning-card">
+                    <h4>Browser Does NOT Understand</h4>
+                    <ul class="check-list">
+                        <li class="check-no">JSX</li>
+                        <li class="check-no">Components</li>
+                        <li class="check-no">Virtual DOM</li>
+                        <li class="check-no">Hooks</li>
+                        <li class="check-no">React-specific syntax</li>
+                    </ul>
+                </div>
+
+                <div class="code-block"><span class="comment">// This JSX cannot run in browser</span>
+<span class="keyword">function</span> App() {
+  <span class="keyword">return</span> &lt;h1&gt;Hello World&lt;/h1&gt;;
+}
+
+<span class="comment">// How can the browser execute this?</span>
+<span class="comment">// It cannot. Browsers don't understand JSX.</span></div>
+
+                <!-- Why Do We Use React -->
+                <h3 id="why-react">Why Do We Use React Then?</h3>
+
+                <div class="card">
+                    <h4>React Solves</h4>
+                    <ul style="padding-left: 20px;">
+                        <li>Reusability</li>
+                        <li>Component architecture</li>
+                        <li>State management</li>
+                        <li>UI synchronization</li>
+                        <li>Rendering management</li>
+                    </ul>
+                </div>
+
+                <p>Instead of verbose vanilla JS, we write cleaner JSX:</p>
+
+                <div class="comparison">
+                    <div class="comparison-card">
+                        <h4>Vanilla JS</h4>
+                        <div class="code-block" style="text-align: left;"><span class="keyword">const</span> h1 = document.createElement(<span class="string">"h1"</span>);
+h1.textContent = <span class="string">"Hello World"</span>;
+root.appendChild(h1);</div>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>React JSX</h4>
+                        <div class="code-block" style="text-align: left;">&lt;h1&gt;Hello World&lt;/h1&gt;</div>
+                    </div>
+                </div>
+
+                <!-- JSX Is Not HTML -->
+                <h3 id="jsx">JSX Is Not HTML</h3>
+
+                <div class="warning-card">
+                    <h4>Many beginners think JSX is HTML. This is incorrect.</h4>
+                    <p>JSX is syntax that LOOKS like HTML. Internally it becomes JavaScript.</p>
+                </div>
+
+                <div class="flow-diagram">
+                    <div class="flow-box">JSX</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">JavaScript</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">React.createElement()</div>
+                </div>
+
+                <!-- JSX Transformation -->
+                <h3 id="transformation">JSX Transformation</h3>
+
+                <div class="comparison">
+                    <div class="comparison-card">
+                        <h4>JSX</h4>
+                        <div class="code-block" style="text-align: left;">&lt;h1&gt;Hello World&lt;/h1&gt;</div>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>Transforms To</h4>
+                        <div class="code-block" style="text-align: left;">React.createElement(
+  <span class="string">"h1"</span>,
+  <span class="keyword">null</span>,
+  <span class="string">"Hello World"</span>
+);</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4>Arguments Explained</h4>
+                    <div class="arg-card">
+                        <span class="arg-num">Argument 1:</span> <code>"h1"</code> - Element type
+                    </div>
+                    <div class="arg-card">
+                        <span class="arg-num">Argument 2:</span> <code>null</code> - Props object
+                    </div>
+                    <div class="arg-card">
+                        <span class="arg-num">Argument 3:</span> <code>"Hello World"</code> - Children
+                    </div>
+                </div>
+
+                <div class="diagram-box">React.createElement(
+  type,
+  props,
+  children
+)</div>
+
+                <!-- Complex JSX Example -->
+                <h3 id="complex-jsx">Complex JSX Example</h3>
+
+                <div class="comparison">
+                    <div class="comparison-card">
+                        <h4>JSX</h4>
+                        <div class="code-block" style="text-align: left;">&lt;div&gt;
+  &lt;h1&gt;Hello&lt;/h1&gt;
+  &lt;button&gt;Click Me&lt;/button&gt;
+&lt;/div&gt;</div>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>Transforms To</h4>
+                        <div class="code-block" style="text-align: left;">React.createElement(
+  <span class="string">"div"</span>,
+  <span class="keyword">null</span>,
+  React.createElement(<span class="string">"h1"</span>, <span class="keyword">null</span>, <span class="string">"Hello"</span>),
+  React.createElement(<span class="string">"button"</span>, <span class="keyword">null</span>, <span class="string">"Click Me"</span>)
+);</div>
+                    </div>
+                </div>
+
+                <div class="tree-diagram"><span class="key">createElement("div")</span>
+    ├── <span class="key">createElement("h1")</span>
+    │       └── <span class="value">"Hello"</span>
+    └── <span class="key">createElement("button")</span>
+            └── <span class="value">"Click Me"</span></div>
+
+                <!-- What Does React.createElement Return -->
+                <h3 id="createelement">What Does React.createElement Return?</h3>
+
+                <div class="info-box">
+                    <strong>Important:</strong> React.createElement does NOT create a real DOM node. No browser element is created yet. Instead it returns a plain JavaScript object.
+                </div>
+
+                <div class="object-viz">{
+  <span class="key">type</span>: <span class="value">"div"</span>,
+  <span class="key">props</span>: {
+    <span class="key">children</span>: [
+      {
+        <span class="key">type</span>: <span class="value">"h1"</span>,
+        <span class="key">props</span>: {
+          <span class="key">children</span>: <span class="value">"Hello"</span>
+        }
+      },
+      {
+        <span class="key">type</span>: <span class="value">"button"</span>,
+        <span class="key">props</span>: {
+          <span class="key">children</span>: <span class="value">"Click Me"</span>
+        }
+      }
+    ]
+  }
+}</div>
+
+                <!-- Virtual DOM -->
+                <h3 id="virtual-dom">This Object Is The Virtual DOM</h3>
+
+                <div class="info-box">
+                    <strong>Definition:</strong> Virtual DOM is a JavaScript object representation of the UI. It is NOT the real DOM. It is only a description of what the UI should look like.
+                </div>
+
+                <div class="comparison">
+                    <div class="comparison-card">
+                        <h4>Real DOM</h4>
+                        <p>Actual Browser Nodes</p>
+                        <div style="font-size: 2rem;"> </div>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>Virtual DOM</h4>
+                        <p>JavaScript Objects</p>
+                        <div style="font-size: 2rem;"> </div>
+                    </div>
+                </div>
+
+                <!-- Function Components -->
+                <h3 id="function-components">Function Components Return Virtual DOM</h3>
+
+                <div class="code-block"><span class="keyword">function</span> App() {
+  <span class="keyword">return</span> (
+    &lt;div&gt;
+      &lt;h1&gt;Hello&lt;/h1&gt;
+      &lt;button&gt;Click Me&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</div>
+
+                <div class="flow-diagram">
+                    <div class="flow-box">App()</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">JSX Generated</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">React.createElement()</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">Virtual DOM Object</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">Return</div>
+                </div>
+
+                <div class="info-box">
+                    <strong>Note:</strong> The function component ultimately returns a Virtual DOM tree. Not a DOM node. Not HTML. A Virtual DOM object structure.
+                </div>
+
+                <!-- Two Major Sides -->
+                <h3 id="two-sides">React Has Two Major Sides</h3>
+
+                <div class="split-screen">
+                    <div class="split-card">
+                        <h4>React Core</h4>
+                        <div class="diagram-box" style="margin: 0;">Component
+    ↓
+JSX
+    ↓
+React.createElement
+    ↓
+Virtual DOM</div>
+                    </div>
+                    <div class="split-card">
+                        <h4>React DOM</h4>
+                        <div class="diagram-box" style="margin: 0;">Virtual DOM
+    ↓
+Compare Trees
+    ↓
+Create/Update DOM
+    ↓
+Browser
+    ↓
+Screen</div>
+                    </div>
+                </div>
+
+                <p>React creates UI descriptions. ReactDOM turns those descriptions into actual browser elements.</p>
+
+                <!-- Entry Point Flow -->
+                <h3 id="entry-point">Entry Point Flow</h3>
+
+                <div class="code-block"><span class="comment">// main.jsx</span>
+<span class="keyword">const</span> root = ReactDOM.createRoot(
+  document.getElementById(<span class="string">"root"</span>)
+);
+
+root.render(
+  &lt;App /&gt;
+);</div>
+
+                <div class="flow-diagram" style="flex-direction: column; align-items: center;">
+                    <div class="flow-box">main.jsx</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">render()</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">App()</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">JSX</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">React.createElement()</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">Virtual DOM</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">ReactDOM</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">Real DOM</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">Browser Screen</div>
+                </div>
+
+                <!-- Re-render -->
+                <h3 id="re-render">What Happens During Re-render?</h3>
+
+                <div class="code-block">setCount(count + 1);</div>
+
+                <div class="diagram-box">Old State
+    ↓
+Old Virtual DOM
+
+State Change
+    ↓
+App Executes Again
+    ↓
+New Virtual DOM
+    ↓
+Comparison
+    ↓
+DOM Updates</div>
+
+                <div class="info-box">
+                    <strong>Note:</strong> React does not compare real DOM first. React compares Old Virtual DOM vs New Virtual DOM. This process is called Reconciliation.
+                </div>
+
+                <!-- Reconciliation -->
+                <h3 id="reconciliation">Reconciliation</h3>
+
+                <div class="card">
+                    <h4>Definition</h4>
+                    <p>The process of comparing the previous Virtual DOM tree with the new Virtual DOM tree.</p>
+                </div>
+
+                <div class="diagram-box">Old Virtual Tree
+        ↓
+    Compare
+        ↑
+New Virtual Tree
+
+        ↓
+
+Find Differences
+
+        ↓
+
+Minimal DOM Updates</div>
+
+                <p>React determines exactly what changed. Then ReactDOM performs only the necessary DOM operations.</p>
+
+                <!-- Internally Uses Vanilla JS -->
+                <h3 id="vanilla-js">Internally React Still Uses Vanilla JavaScript</h3>
+
+                <div class="info-box">
+                    <strong>Important:</strong> Many students think React eliminates DOM APIs. It does not. React is simply managing those operations for us.
+                </div>
+
+                <div class="code-block"><span class="comment">// ReactDOM internally uses:</span>
+document.createElement()
+appendChild()
+removeChild()
+replaceChild()
+setAttribute()
+addEventListener()</div>
+
+                <div class="diagram-box">Developer
+    ↓
+React
+    ↓
+ReactDOM
+    ↓
+Vanilla JS DOM APIs
+    ↓
+Browser</div>
+
+                <!-- Final Mental Model -->
+                <h3 id="final-model">Final Mental Model</h3>
+
+                <div class="flow-diagram" style="flex-direction: column; align-items: center;">
+                    <div class="flow-box">Component</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">JSX</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">React.createElement()</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">Virtual DOM</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">Return Virtual DOM Tree</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">ReactDOM.render()</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">Reconciliation</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">Minimal DOM Changes</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">Real DOM</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box highlight">Browser Rendering Pipeline</div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">Screen</div>
+                </div>
+
+                <div class="card">
+                    <h4>React Is Two Cooperating Systems</h4>
+                    <ol style="padding-left: 20px;">
+                        <li><strong>React Core:</strong> Component -> JSX -> Virtual DOM</li>
+                        <li><strong>ReactDOM:</strong> Virtual DOM -> Reconciliation -> Real DOM</li>
+                    </ol>
+                    <p style="margin-top: 10px;">React helps developers describe UI. ReactDOM converts that description into actual browser elements using Vanilla JavaScript APIs internally.</p>
+                </div>
+
+            </main>
+
+            <aside class="sidebar-right">
+                <h3>On This Page</h3>
+                <ul class="toc-list">
+                    <li class="toc-item" onclick="scrollToSection('abstraction')">Abstraction</li>
+                    <li class="toc-item" onclick="scrollToSection('browser')">Browser</li>
+                    <li class="toc-item" onclick="scrollToSection('why-react')">Why React</li>
+                    <li class="toc-item" onclick="scrollToSection('jsx')">JSX</li>
+                    <li class="toc-item" onclick="scrollToSection('transformation')">Transformation</li>
+                    <li class="toc-item" onclick="scrollToSection('complex-jsx')">Complex JSX</li>
+                    <li class="toc-item" onclick="scrollToSection('createelement')">createElement</li>
+                    <li class="toc-item" onclick="scrollToSection('virtual-dom')">Virtual DOM</li>
+                    <li class="toc-item" onclick="scrollToSection('function-components')">Functions</li>
+                    <li class="toc-item" onclick="scrollToSection('two-sides')">Two Sides</li>
+                    <li class="toc-item" onclick="scrollToSection('entry-point')">Entry Point</li>
+                    <li class="toc-item" onclick="scrollToSection('re-render')">Re-render</li>
+                    <li class="toc-item" onclick="scrollToSection('reconciliation')">Reconciliation</li>
+                    <li class="toc-item" onclick="scrollToSection('vanilla-js')">Vanilla JS</li>
+                    <li class="toc-item" onclick="scrollToSection('final-model')">Final Model</li>
+                </ul>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const btn = document.querySelector('.theme-toggle');
+            btn.textContent = document.body.classList.contains('dark') ? 'LIGHT MODE' : 'DARK MODE';
+        }
+
+        function toggleSidebar() {
+            document.querySelector('.sidebar-left').classList.toggle('active');
+            document.querySelector('.hamburger').classList.toggle('active');
+            document.querySelector('.sidebar-overlay').classList.toggle('active');
+        }
+
+        function setActive(element) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+            if (window.innerWidth <= 768) toggleSidebar();
+        }
+
+        window.addEventListener('load', function() {
+            const sidebar = document.querySelector('.sidebar-left');
+            if (sidebar) sidebar.scrollTop = 0;
+        });
+
+        function scrollToSection(id) {
+            const element = document.getElementById(id);
+            const contentArea = document.querySelector('.content');
+            if (element && contentArea) {
+                contentArea.scrollTo({ top: element.offsetTop, behavior: 'smooth' });
+            }
+        }
+    </script>
+</body>
+</html>
